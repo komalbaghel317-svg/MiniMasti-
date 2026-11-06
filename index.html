@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#10142e"><title>MiniMasti — Ultimate Story Arena</title>
+<style>
+:root{--gold:#ffd34f;--blue:#7d9cff;--panel:#171f43;--line:#5265a8}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% 0,#28346c,#080b1c 70%);color:#fff;font-family:system-ui,Arial,sans-serif;min-height:100vh;display:flex;justify-content:center}
+#app{width:min(100%,1050px);padding:10px}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 2px 8px}
+.logo{font-size:clamp(23px,5vw,36px);font-weight:1000;color:var(--gold);text-shadow:2px 3px #a33d2d;letter-spacing:-1px}
+#stageLabel{font-size:12px;font-weight:900;color:#c6d2ff;text-align:right}
+canvas{width:100%;display:block;aspect-ratio:16/9;background:#111a3d;border:2px solid #7589d3;border-radius:16px;touch-action:none;box-shadow:0 10px 35px #0008}
+#stats{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.stat{background:#1b254b;border:1px solid #4b5e9e;border-radius:10px;padding:6px 9px;font-size:12px;flex:1;min-width:100px}
+#message{min-height:25px;text-align:center;color:#ffe38b;font-weight:800;font-size:14px;padding:3px}
+#controls{display:flex;justify-content:space-between;align-items:center;gap:8px;user-select:none}
+.group{display:flex;gap:6px}
+button{border:1px solid #7386cf;border-radius:13px;color:white;background:linear-gradient(#4b62ad,#26356f);font-weight:900;padding:11px 13px;min-width:52px;min-height:51px;font-size:15px;box-shadow:0 4px #101735;touch-action:none;cursor:pointer}
+button:active{transform:translateY(3px);box-shadow:0 1px #101735}
+button:disabled{opacity:.35;filter:grayscale(1)}
+.btnHit{background:linear-gradient(#ff9a43,#bd452e);border-color:#ffc079}.btnPower{background:linear-gradient(#a66cff,#5630b8);border-color:#d1b4ff}
+.btnGold{background:linear-gradient(#ffe06b,#dc7b25);color:#24152a;border:0}
+.btnGhost{background:#202a55}
+#below{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
+.note{font-size:11px;color:#aebbe9}
+#overlay{position:fixed;inset:0;background:#05091beF;display:flex;align-items:center;justify-content:center;padding:12px;z-index:5;overflow:auto}
+.panel{max-width:680px;width:100%;max-height:94vh;overflow:auto;background:linear-gradient(145deg,#26356d,#111832);border:2px solid #8296e8;border-radius:22px;padding:18px;text-align:center;box-shadow:0 15px 60px #000b}
+.panel h2{color:var(--gold);font-size:clamp(24px,5vw,34px);margin:3px 0 8px}
+.panel p{line-height:1.45;color:#e0e6ff;margin:7px 0}
+.row{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:10px 0}
+.grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;margin:12px 0}
+.fighterCard{padding:8px 4px;min-width:0;min-height:86px;background:#202b58;border:1px solid #6175bc;border-radius:12px;cursor:pointer}
+.fighterCard.selected{outline:3px solid var(--gold);background:#3a3e68}
+.fighterCard.locked{opacity:.45;filter:grayscale(1)}
+.avatar{font-size:29px;display:block}.fighterName{font-size:11px;font-weight:900;display:block}.fighterMeta{font-size:9px;color:#c7d1f4}
+.levels{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:12px 0}
+.levelChip{min-width:43px;padding:9px 10px}
+.small{font-size:11px;color:#aebbe9}
+.hidden{display:none!important}
+@media(max-width:540px){#app{padding:7px}.grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}.fighterCard{padding:6px 2px;min-height:77px}.avatar{font-size:24px}.fighterName{font-size:9px}.fighterMeta{font-size:8px}button{min-width:45px;min-height:49px;padding:8px;font-size:13px}.stat{font-size:10px;min-width:85px}.note{font-size:10px}}
+</style></head>
+<body><main id="app">
+<header><div class="logo">👑 MiniMasti</div><div id="stageLabel">ULTIMATE STORY ARENA</div></header>
+<canvas id="game" width="960" height="540"></canvas>
+<div id="stats">
+ <div class="stat">❤️ HERO <b id="heroHp">100</b>%</div><div class="stat">👹 RIVAL <b id="enemyHp">100</b>%</div><div class="stat">⚡ POWER <b id="power">0</b>%</div><div class="stat">🏆 WINS <b id="wins">0</b></div><div class="stat">💾 <b id="saveState">AUTO-SAVE</b></div>
+</div>
+<div id="message">Choose your fighter and begin your story!</div>
+<div id="controls">
+ <div class="group"><button data-hold="left">◀</button><button data-hold="right">▶</button><button data-action="jump">⬆</button></div>
+ <div class="group"><button class="btnHit" data-action="punch">👊<small> HIT</small></button><button class="btnHit" data-action="kick">🦶<small> KICK</small></button><button class="btnPower" data-action="special">⚡<small> POWER</small></button></div>
+</div>
+<div id="below"><span class="note">Move ◀ ▶ · Jump ⬆ · HIT / KICK · POWER · Keyboard: A/D, W, J, K, L</span><div class="group"><button class="btnGhost" id="pauseBtn">Ⅱ PAUSE</button><button class="btnGhost" id="menuBtn">☰ MENU</button></div></div>
+</main>
+<div id="overlay"><div class="panel" id="panel"></div></div>
+<script>
+(()=>{
+'use strict';
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d'),$=id=>document.getElementById(id);
+const W=960,H=540,GROUND=414,KEY='minimasti_ultimate_save_v2';
+const fighters=[
+ {name:'Chintu',emoji:'😎',color:'#e34e43',skill:'Blazing Fist',desc:'Balanced hero',unlock:1},
+ {name:'Mira',emoji:'🥷',color:'#22b9a8',skill:'Wind Dash',desc:'Quick and nimble',unlock:1},
+ {name:'Bolt',emoji:'🤖',color:'#6b9cff',skill:'Spark Smash',desc:'Powerful punches',unlock:2},
+ {name:'Bunty',emoji:'🐼',color:'#e7e8f2',skill:'Bamboo Bounce',desc:'Strong defense',unlock:2},
+ {name:'Rex',emoji:'🦖',color:'#5bc66b',skill:'Dino Roar',desc:'Heavy hitter',unlock:3},
+ {name:'Kiki',emoji:'🦊',color:'#ff9b45',skill:'Fox Fire',desc:'Fast combo',unlock:3},
+ {name:'Golu',emoji:'🥷',color:'#9d6bea',skill:'Shadow Spin',desc:'Tricky fighter',unlock:4},
+ {name:'Tara',emoji:'🦸‍♀️',color:'#ec68a2',skill:'Star Burst',desc:'All-round star',unlock:4},
+ {name:'Titan',emoji:'🗿',color:'#a2a8bc',skill:'Rock Drop',desc:'Boss strength',unlock:5},
+ {name:'Dragon',emoji:'🐲',color:'#d74b55',skill:'Dragon Wave',desc:'Arena champion',unlock:6}
+];
+const stages=[
+ {name:'Rooftop Rookie',foe:'Training Bot',emoji:'🤖',color:'#7184c9',hp:90,dmg:5,speed:1.05,bg:0},
+ {name:'Ninja Alley',foe:'Ninja Nibba',emoji:'🥷',color:'#6e4ac5',hp:105,dmg:7,speed:1.25,bg:1},
+ {name:'Bamboo Brawl',foe:'Mega Panda',emoji:'🐼',color:'#4d9c72',hp:125,dmg:8,speed:1.35,bg:2},
+ {name:'Neon District',foe:'Cyber Fox',emoji:'🦊',color:'#d45b9e',hp:145,dmg:10,speed:1.5,bg:3},
+ {name:'Volcano Gate',foe:'Rock Titan',emoji:'🗿',color:'#b76b43',hp:175,dmg:12,speed:1.6,bg:4},
+ {name:'Dragon Summit',foe:'Dragon Champ',emoji:'🐲',color:'#d34c55',hp:215,dmg:14,speed:1.75,bg:5}
+];
+let save={unlocked:1,wins:0,selected:0,cleared:[]};
+try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s)save={...save,...s};}catch(e){}
+save.unlocked=Math.max(1,Math.min(6,Number(save.unlocked)||1));save.wins=Math.max(0,Number(save.wins)||0);save.selected=Math.max(0,Math.min(9,Number(save.selected)||0));
+let level=1,selected=save.selected,mode='menu',paused=false,frame=0,heroHP=100,foeHP=90,power=0,heroX=250,foeX=710,heroY=GROUND,foeY=GROUND,heroVy=0,foeVy=0,face=1,foeFace=-1,attackFx=0,foeFx=0,shake=0,combo=0,comboTimer=0,foeCooldown=0,heroCooldown=0,invuln=0,toast='',toastT=0;
+const held={left:false,right:false};let audioOn=true,audioCtx=null;
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(save));$('saveState').textContent='SAVED';}catch(e){$('saveState').textContent='LOCAL ONLY';}}
+function say(t){toast=t;toastT=125;$('message').textContent=t}
+function sound(freq=240,dur=.08,type='square',vol=.035){if(!audioOn)return;try{audioCtx=audioCtx||new(window.AudioContext||window.webkitAudioContext)();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.value=freq;g.gain.value=vol;o.connect(g);g.connect(audioCtx.destination);o.start();g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+dur);o.stop(audioCtx.currentTime+dur)}catch(e){}}
+function updateHud(){$('heroHp').textContent=Math.ceil(heroHP);$('enemyHp').textContent=Math.ceil(foeHP);$('power').textContent=Math.floor(power);$('wins').textContent=save.wins;$('stageLabel').textContent='STORY · LEVEL '+level+' / 6 · '+stages[level-1].name.toUpperCase()}
+function resetFight(){heroHP=100;foeHP=stages[level-1].hp;power=0;heroX=250;foeX=710;heroY=foeY=GROUND;heroVy=foeVy=0;heroCooldown=foeCooldown=invuln=0;combo=0;updateHud()}
+function panel(html){$('panel').innerHTML=html;$('overlay').classList.remove('hidden')}
+function hidePanel(){$('overlay').classList.add('hidden')}
+function menu(){
+ mode='menu';paused=false;
+ panel(`<h2>👑 MiniMasti: Story Arena</h2><p>Pick a fighter, clear six arenas and defeat the Dragon Champion!</p><p><b>Saved progress:</b> ${save.unlocked}/6 levels unlocked · ${save.wins} wins</p><h3>Choose Your Fighter</h3><div class="grid" id="fighterGrid"></div><h3>Choose Level</h3><div class="levels" id="levelGrid"></div><div class="row"><button class="btnGold" id="startBtn">START FIGHT</button><button id="soundBtn" class="btnGhost">${audioOn?'🔊 SOUND ON':'🔇 SOUND OFF'}</button><button id="resetBtn" class="btnGhost">RESET SAVE</button></div><p class="small">Progress auto-saves in this browser on this device. Clearing browser data may erase it.</p>`);
+ const fg=$('fighterGrid');fighters.forEach((f,i)=>{const unlocked=f.unlock<=save.unlocked;const d=document.createElement('button');d.className='fighterCard '+(selected===i?'selected ':'')+(!unlocked?'locked':'');d.innerHTML=`<span class="avatar">${f.emoji}</span><span class="fighterName">${f.name}</span><span class="fighterMeta">${unlocked?f.skill:'🔒 Level '+f.unlock}</span>`;d.disabled=!unlocked;d.onclick=()=>{selected=i;save.selected=i;persist();menu()};fg.appendChild(d)});
+ const lg=$('levelGrid');stages.forEach((s,i)=>{const b=document.createElement('button');b.className='levelChip '+(i+1<=save.unlocked?'':'locked');b.textContent=i+1<=save.unlocked?'LEVEL '+(i+1):'🔒 '+(i+1);b.disabled=i+1>save.unlocked;b.onclick=()=>{level=i+1;startFight()};lg.appendChild(b)});
+ $('startBtn').onclick=()=>{level=Math.min(save.unlocked,6);startFight()};$('soundBtn').onclick=()=>{audioOn=!audioOn;menu()};$('resetBtn').onclick=()=>{if(confirm('Reset all saved MiniMasti progress?')){save={unlocked:1,wins:0,selected:0,cleared:[]};selected=0;persist();menu()}};
+}
+function startFight(){resetFight();mode='fight';paused=false;hidePanel();say('Fight! '+fighters[selected].name+' vs '+stages[level-1].foe+'!');sound(440,.12,'triangle');}
+function pause(){if(mode!=='fight')return;paused=!paused;if(paused){mode='pause';panel(`<h2>⏸ Paused</h2><p>Take a breather, champion.</p><div class="row"><button class="btnGold" id="resume">RESUME</button><button id="toMenu">STORY MENU</button></div>`);$('resume').onclick=()=>{mode='fight';hidePanel()};$('toMenu').onclick=menu}else{mode='fight';hidePanel()}}
+$('pauseBtn').onclick=pause;$('menuBtn').onclick=menu;
+function win(){mode='result';save.wins++;if(!save.cleared.includes(level))save.cleared.push(level);save.unlocked=Math.max(save.unlocked,Math.min(6,level+1));persist();updateHud();sound(660,.25,'triangle');panel(`<h2>🏆 VICTORY!</h2><p>${stages[level-1].foe} has been defeated!</p><p>Wins: ${save.wins} · Unlocked: Level ${save.unlocked}</p><div class="row"><button class="btnGold" id="next">${level<6?'NEXT LEVEL':'CHAMPION ENDING'}</button><button id="menu2">STORY MENU</button></div>`);$('next').onclick=()=>{if(level<6){level++;startFight()}else ending()};$('menu2').onclick=menu}
+function ending(){panel(`<h2>👑 DRAGON CHAMPION!</h2><p>You cleared all six arenas. ${fighters[selected].name} is the MiniMasti Story Champion!</p><p>Total wins: ${save.wins}</p><div class="row"><button class="btnGold" id="again">PLAY AGAIN</button><button id="endMenu">STORY MENU</button></div>`);$('again').onclick=()=>{level=1;startFight()};$('endMenu').onclick=menu}
+function lose(){mode='result';sound(110,.25,'sawtooth');panel(`<h2>💫 TRY AGAIN!</h2><p>${stages[level-1].foe} won this round. Your unlocked progress is safe.</p><div class="row"><button class="btnGold" id="retry">RETRY LEVEL</button><button id="loseMenu">STORY MENU</button></div>`);$('retry').onclick=startFight;$('loseMenu').onclick=menu}
+function doAction(a){
+ if(mode!=='fight'||paused)return;
+ const d=Math.abs(heroX-foeX);
+ if(a==='jump'){if(heroY>=GROUND){heroVy=-12;sound(310,.07,'triangle')}return}
+ if(a==='special'){if(power<100){say('Power is charging! Land hits to fill it.');return}if(d>280){say('Move closer before using your special!');return}power=0;foeHP=Math.max(0,foeHP-(34+selected*2));foeFx=22;shake=12;attackFx=20;say('✨ '+fighters[selected].skill.toUpperCase()+'!');sound(95,.22,'sawtooth',.06);updateHud();if(foeHP<=0)win();return}
+ if(heroCooldown>0)return;
+ if(d>155){say('Too far! Move closer!');return}
+ heroCooldown=a==='kick'?27:19;attackFx=a==='kick'?18:13;combo=comboTimer>0?combo+1:1;comboTimer=75;
+ const bonus=selected===2||selected===8?3:0;
+ let damage=(a==='kick'?17:11)+selected+bonus+(combo>=3?5:0);
+ foeHP=Math.max(0,foeHP-damage);foeFx=12;power=Math.min(100,power+(a==='kick'?22:16));shake=5;say(combo>=3?'🔥 '+combo+' HIT COMBO!':a==='kick'?'WHAM! Solid kick!':'POW! Clean hit!');sound(a==='kick'?170:260,.09,'square');updateHud();if(foeHP<=0)win();
+}
+function update(){
+ frame++;if(mode!=='fight'||paused)return;
+ if(held.left){heroX-=4.3;face=-1}if(held.right){heroX+=4.3;face=1}heroX=Math.max(55,Math.min(905,heroX));
+ heroY+=heroVy;heroVy+=.62;if(heroY>GROUND){heroY=GROUND;heroVy=0}
+ const dx=heroX-foeX;foeFace=dx<0?-1:1;const dist=Math.abs(dx),stage=stages[level-1];
+ if(dist>112)foeX+=Math.sign(dx)*stage.speed;
+ else if(foeCooldown<=0&&Math.random()<.035){foeCooldown=70;heroHP=Math.max(0,heroHP-stage.dmg);invuln=22;shake=4;say(stage.foe+' counter-attacks!');sound(125,.1,'square');updateHud()}
+ if(foeCooldown>0)foeCooldown--;if(heroCooldown>0)heroCooldown--;if(invuln>0)invuln--;if(foeFx>0)foeFx--;if(attackFx>0)attackFx--;if(comboTimer>0)comboTimer--;else combo=0;if(shake>0)shake*=.82;if(toastT>0)toastT--;
+ power=Math.min(100,power+.045);if(frame%12===0)updateHud();
+ if(heroHP<=0)lose();
+}
+function drawBG(){
+ const s=stages[level-1]||stages[0],g=ctx.createLinearGradient(0,0,0,H);const palettes=[['#101b48','#633c79'],['#151735','#4a2862'],['#143b43','#385d55'],['#101b45','#792e70'],['#301b28','#9a442d'],['#11152f','#482b69']];g.addColorStop(0,palettes[s.bg][0]);g.addColorStop(1,palettes[s.bg][1]);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+ ctx.fillStyle='#f7e9b2';ctx.beginPath();ctx.arc(790,92,43,0,Math.PI*2);ctx.fill();
+ for(let i=0;i<10;i++){let x=i*110-15,h=130+(i%3)*42;ctx.fillStyle=i%2?'#202957':'#26315e';ctx.fillRect(x,405-h,82,h);ctx.fillStyle='#ffc56b';for(let y=0;y<3;y++)for(let z=0;z<2;z++)ctx.fillRect(x+15+z*32,420-h+y*37,10,15)}
+ ctx.fillStyle='#2b345b';ctx.fillRect(0,GROUND+2,W,H-GROUND);ctx.strokeStyle='#7181b3';ctx.lineWidth=2;for(let x=-10;x<W;x+=80){ctx.beginPath();ctx.moveTo(x,GROUND+2);ctx.lineTo(x-25,H);ctx.stroke()}ctx.strokeStyle='#a0acd5';ctx.beginPath();ctx.moveTo(0,GROUND+2);ctx.lineTo(W,GROUND+2);ctx.stroke();
+}
+function drawFighter(x,y,emoji,color,dir,flash,isHero){
+ ctx.save();ctx.translate(x,y);ctx.scale(dir,1);
+ ctx.fillStyle='#090d24aa';ctx.beginPath();ctx.ellipse(0,5,49,10,0,0,Math.PI*2);ctx.fill();
+ const blink=flash>0&&Math.floor(frame/3)%2===0;
+ ctx.fillStyle=blink?'#fff':color;ctx.fillRect(-29,-87,58,58);
+ ctx.fillStyle='#f1bc91';ctx.beginPath();ctx.arc(0,-112,30,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle=isHero?'#25223b':'#201a37';ctx.beginPath();ctx.arc(-2,-125,31,Math.PI,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#fff';ctx.fillRect(7,-115,10,8);ctx.fillStyle='#17172a';ctx.fillRect(11,-114,4,5);
+ ctx.fillStyle=color;ctx.fillRect(-43,-77,16,49);ctx.fillRect(27,-77,16,49);
+ ctx.fillStyle='#17172a';ctx.fillRect(-45,-30,30,12);ctx.fillRect(16,-30,30,12);
+ ctx.fillStyle=color;ctx.fillRect(-59,-82,35,15);ctx.fillRect(25,-82,35,15);
+ ctx.font='32px system-ui';ctx.textAlign='center';ctx.fillText(emoji,0,-98);
+ if(attackFx>0&&isHero){ctx.font='bold 28px system-ui';ctx.fillStyle='#ffe66a';ctx.fillText('✦',66,-78)}
+ if(flash>0&&!isHero){ctx.font='bold 28px system-ui';ctx.fillStyle='#fff';ctx.fillText('💥',-5,-164)}
+ ctx.restore();
+}
+function draw(){
+ ctx.save();if(shake>1)ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);
+ drawBG();
+ ctx.fillStyle='#121a3b';ctx.fillRect(35,28,350,28);ctx.fillRect(575,28,350,28);
+ ctx.fillStyle='#48e28a';ctx.fillRect(39,32,342*Math.max(0,heroHP/100),20);
+ ctx.fillStyle='#ff526b';ctx.fillRect(579,32,342*Math.max(0,foeHP/stages[level-1].hp),20);
+ ctx.fillStyle='#fff';ctx.font='bold 18px system-ui';ctx.fillText(fighters[selected].name.toUpperCase(),40,22);ctx.textAlign='right';ctx.fillText(stages[level-1].foe.toUpperCase(),920,22);ctx.textAlign='left';
+ ctx.fillStyle='#151d43';ctx.fillRect(40,67,180,12);ctx.fillStyle='#9d70ff';ctx.fillRect(42,69,176*power/100,8);
+ ctx.fillStyle='#fff';ctx.font='13px system-ui';ctx.fillText('SPECIAL POWER',42,94);
+ drawFighter(heroX,heroY,fighters[selected].emoji,fighters[selected].color,face,invuln,fighters[selected].name);
+ drawFighter(foeX,foeY,stages[level-1].emoji,stages[level-1].color,foeFace,foeFx,'');
+ ctx.textAlign='center';ctx.fillStyle='#ffe16b';ctx.font='bold 24px system-ui';ctx.fillText('ARENA '+level,480,126);
+ if(combo>=2){ctx.font='bold 25px system-ui';ctx.fillStyle='#ffcf4c';ctx.fillText(combo+' HIT COMBO!',480,165)}
+ if(mode==='pause'){ctx.fillStyle='#0009';ctx.fillRect(0,0,W,H);ctx.fillStyle='#fff';ctx.font='bold 48px system-ui';ctx.fillText('PAUSED',480,270)}
+ ctx.restore();
+}
+function loop(){update();draw();requestAnimationFrame(loop)}
+document.querySelectorAll('[data-hold]').forEach(b=>{const k=b.dataset.hold;b.addEventListener('pointerdown',e=>{e.preventDefault();held[k]=true});['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>held[k]=false))});
+document.querySelectorAll('[data-action]').forEach(b=>b.addEventListener('pointerdown',e=>{e.preventDefault();doAction(b.dataset.action)}));
+window.addEventListener('keydown',e=>{let k=e.key.toLowerCase();if(k==='arrowleft'||k==='a')held.left=true;if(k==='arrowright'||k==='d')held.right=true;if(k==='w'||k==='arrowup')doAction('jump');if(k==='j')doAction('punch');if(k==='k')doAction('kick');if(k==='l'||e.code==='Space'){e.preventDefault();doAction('special')}if(k==='escape')pause()});
+window.addEventListener('keyup',e=>{let k=e.key.toLowerCase();if(k==='arrowleft'||k==='a')held.left=false;if(k==='arrowright'||k==='d')held.right=false});
+window.addEventListener('blur',()=>{held.left=held.right=false});
+window.addEventListener('storage',e=>{if(e.key===KEY){try{save={...save,...JSON.parse(e.newValue||'{}')}}catch(_){}}});
+resetFight();updateHud();menu();loop();
+})();
+</script></body></html>
